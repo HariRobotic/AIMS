@@ -1,0 +1,45 @@
+version: "3.9"
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: anomaly-monitor-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - anomaly-uploads:/app/uploads
+      - anomaly-frames:/app/frames
+      - anomaly-heatmaps:/app/heatmaps
+      - anomaly-models:/app/models
+      - anomaly-db:/app/data
+    environment:
+      - DATABASE_URL=sqlite+aiosqlite:////app/data/anomaly_monitor.db
+      - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
+      - DEBUG=false
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: anomaly-monitor-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  anomaly-uploads:
+  anomaly-frames:
+  anomaly-heatmaps:
+  anomaly-models:
+  anomaly-db:
