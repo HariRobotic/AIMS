@@ -8,7 +8,6 @@ venv/
 uploads/
 frames/
 heatmaps/
-models/
 
 # Node
 node_modules/
