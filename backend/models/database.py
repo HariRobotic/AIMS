@@ -6,8 +6,20 @@ from sqlalchemy.ext.asyncio import async_sessionmaker
 from core.config import settings
 
 
-engine = create_async_engine(settings.DATABASE_URL, echo=settings.DEBUG)
-AsyncSessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+engine = create_async_engine(
+    settings.DATABASE_URL,
+    echo=settings.DEBUG,
+    pool_pre_ping=True,
+    pool_size=10,
+    max_overflow=5,
+    pool_recycle=300,
+)
+
+AsyncSessionLocal = async_sessionmaker(
+    engine,
+    class_=AsyncSession,
+    expire_on_commit=False
+)
 
 
 class Base(DeclarativeBase):
@@ -38,16 +50,16 @@ class UploadRecord(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     filename = Column(String(500), nullable=False)
     original_filename = Column(String(500), nullable=False)
-    file_type = Column(String(50), nullable=False)  # "image" or "video"
+    file_type = Column(String(50), nullable=False)
     mime_type = Column(String(100))
-    file_size = Column(Integer)  # bytes
+    file_size = Column(Integer)
     file_path = Column(String(1000), nullable=False)
-    duration_seconds = Column(Float, nullable=True)  # for videos
-    frame_count = Column(Integer, nullable=True)  # for videos
+    duration_seconds = Column(Float, nullable=True)
+    frame_count = Column(Integer, nullable=True)
     width = Column(Integer, nullable=True)
     height = Column(Integer, nullable=True)
     uploaded_at = Column(DateTime, default=datetime.utcnow)
-    status = Column(String(50), default="uploaded")  # uploaded, processing, processed, error
+    status = Column(String(50), default="uploaded")
 
     owner = relationship("User", back_populates="uploads")
     detection_jobs = relationship("DetectionJob", back_populates="upload")
@@ -59,8 +71,8 @@ class DetectionJob(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     upload_id = Column(Integer, ForeignKey("upload_records.id"), nullable=True)
-    job_type = Column(String(50), nullable=False)  # "image", "video", "stream"
-    status = Column(String(50), default="pending")  # pending, running, completed, failed
+    job_type = Column(String(50), nullable=False)
+    status = Column(String(50), default="pending")
     model_name = Column(String(100), default="padim")
     anomaly_threshold = Column(Float, default=0.5)
     total_frames = Column(Integer, default=0)
@@ -89,9 +101,9 @@ class DetectionResult(Base):
     heatmap_path = Column(String(1000), nullable=True)
     anomaly_score = Column(Float, nullable=False)
     is_anomaly = Column(Boolean, default=False)
-    anomaly_map = Column(JSON, nullable=True)  # compressed anomaly map data
-    bounding_boxes = Column(JSON, nullable=True)  # detected anomaly regions
-    timestamp_ms = Column(Float, nullable=True)  # for video frames
+    anomaly_map = Column(JSON, nullable=True)
+    bounding_boxes = Column(JSON, nullable=True)
+    timestamp_ms = Column(Float, nullable=True)
     detected_at = Column(DateTime, default=datetime.utcnow)
     job_metadata = Column(JSON, nullable=True)
 
@@ -104,9 +116,9 @@ class CameraStream(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     name = Column(String(200), nullable=False)
-    url = Column(String(1000), nullable=False)  # RTSP or HTTP stream URL
+    url = Column(String(1000), nullable=False)
     is_active = Column(Boolean, default=False)
-    sampling_interval_ms = Column(Integer, default=1000)  # ms between captures
+    sampling_interval_ms = Column(Integer, default=1000)
     created_at = Column(DateTime, default=datetime.utcnow)
     last_captured_at = Column(DateTime, nullable=True)
 
@@ -120,5 +132,9 @@ async def get_db():
     async with AsyncSessionLocal() as session:
         try:
             yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
         finally:
             await session.close()
