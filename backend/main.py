@@ -24,7 +24,7 @@ async def seed_admin():
     """Create a default admin user on first run."""
     from sqlalchemy import select
     async with AsyncSessionLocal() as db:
-        result = await db.execute(select(User).where(User.username == "admin"))
+        result = await db.execute(select(User).where(User.username == "Admin"))
         if not result.scalar_one_or_none():
             admin = User(
                 email="admin@anomalymonitor.local",
