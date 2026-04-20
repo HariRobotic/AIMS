@@ -255,7 +255,4 @@ anomaly-monitor/
 │   └── package.json
 └── docker-compose.yml
 ```
-#   a m i s  
- #   a m i s  
- #   a m i s  
- 
+#
