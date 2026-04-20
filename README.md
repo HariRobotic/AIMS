@@ -95,8 +95,8 @@ npm start                         # runs on http://localhost:3000
 
 | Field | Value |
 |-------|-------|
-| Username | `admin` |
-| Password | `admin1234` |
+| Username | `Admin` |
+| Password | `Admin@123` |
 
 > **Important:** change the admin password and `SECRET_KEY` before any public deployment.
 
@@ -255,3 +255,5 @@ anomaly-monitor/
 │   └── package.json
 └── docker-compose.yml
 ```
+#   a m i s  
+ 
